@@ -1,0 +1,44 @@
+version: '3.7'
+services:
+  django:
+    container_name: django
+    restart: always
+    build: ./django
+    expose:
+      - "3031"
+    depends_on:
+      - mysql
+    command: bash -c "python manage.py migrate && gunicorn cop_map.wsgi -b 0.0.0.0:3031"
+    volumes:
+      - "./django:/opt/apps"
+      - "staticdata:/opt/static/"
+  nginx:
+    container_name: nginx
+    restart: always
+    image: nginx
+    depends_on:
+      - django
+    ports:
+      - "80:80"
+    volumes:
+      - "./nginx/:/etc/nginx/"
+      - "staticdata:/opt/apps/static/"
+  mysql:
+    container_name: mysql
+    build: ./mysql
+    image: mysql:5.7
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/initdb.d:/docker-entrypoint-initdb.d
+      - ./mysql/conf.d:/etc/mysql/conf.d
+      - ./mysql:/var/log/mysql
+    environment:
+      MYSQL_DATABASE: cop_map
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+volumes:
+  dbdata:
+  staticdata:
